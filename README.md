@@ -19,7 +19,7 @@ This is a  harness of C# to test with Design Automation of AutoCAD for specific 
 * put source DWG (with Tables) on a web driver such as S3 of AWS 
 
 ##Setup/Usage Instructions
-* Firstly, test the workflow of package and workitem by Windows console program [Custom-Apppackage](CreateCloset.bundle/Custom-Apppackage)
+
   * open the solution [TrainingHarness](TrainingHarness.sln)
   * Unzip [ObjectARX SDK] (http://usa.autodesk.com/adsk/servlet/index?siteID=123112&id=773204). Add AcCoreMgd, AcDbMgd from SDK/inc to the project *PackageNetPlugin*
    * Restore the packages of project **Client** by [NuGet](https://www.nuget.org/). The simplest way is to right click the project>>"Manage NuGet Packages for Solution" >> "Restore" (top right of dialog)
