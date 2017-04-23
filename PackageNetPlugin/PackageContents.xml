@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ApplicationPackage
+    SchemaVersion="1.0"
+    Version="1.0"
+    ProductCode=""
+    HelpFile=""
+    Name="AppPackPlugin"
+    Description="AppPackPlugin"
+    Author="Xiaodong Liang" >
+    <CompanyDetails
+      Name="Autodesk, Inc"
+      Phone="111.111.1111"
+      Url="www.autodesk.com"
+      Email="xiaodong.liang@autodesk.com" />
+    <Components>
+      <RuntimeRequirements 
+        OS="Win64" 
+        Platform="AutoCAD" />
+      <ComponentEntry
+        AppName="MyAppPackPlugin"
+        ModuleName="./Contents/PackageNetPlugin.dll"
+        AppDescription="AppPackPlugin"
+        LoadOnCommandInvocation="True"
+        LoadOnAutoCADStartup="False">
+        <Commands GroupName="Commands">
+          <Command Global="MyPluginCommand" Local="MyPluginCommand" /> 
+        </Commands>
+        <AssemblyMappings>
+          <AssemblyMapping
+            Name="AppPackPlugin.Newtonsoft.Json"
+            Path="./Contents/Newtonsoft.Json.dll" />
+        </AssemblyMappings>
+        
+      </ComponentEntry>
+
+      <ComponentEntry
+       AppName="AppPackPlugin.Newtonsoft.Json"
+       AppType="Dependency"
+       ModuleName="./Contents/Newtonsoft.Json.dll"
+       AppDescription="JSON processing library"
+       LoadOnAutoCADStartup="False" />
+    </Components>
+</ApplicationPackage>
