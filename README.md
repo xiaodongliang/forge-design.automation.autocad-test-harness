@@ -19,12 +19,10 @@ This is a  harness of C# to test with Design Automation of AutoCAD for specific 
 * put source DWG (with Tables) on a web driver such as S3 of AWS 
 
 ##Setup/Usage Instructions
-
   * open the solution [TrainingHarness](TrainingHarness.sln)
   * Unzip [ObjectARX SDK] (http://usa.autodesk.com/adsk/servlet/index?siteID=123112&id=773204). Add AcCoreMgd, AcDbMgd from SDK/inc to the project *PackageNetPlugin*
-   * Restore the packages of project **Client** by [NuGet](https://www.nuget.org/). The simplest way is to right click the project>>"Manage NuGet Packages for Solution" >> "Restore" (top right of dialog)
-  * Build project *PackageNetPlugin*. It is better to test with local AutoCAD to verify the custom command: load the .NET binary in AutoCAD, open the test DWG (with Tables), run the command 'MyPluginCommand', the code will dump all cell data of all Tables in the drawing and output to an json file: myTableData.json 
- 
+  * Restore the packages of project **Client** by [NuGet](https://www.nuget.org/). The simplest way is to right click the project>>"Manage NuGet Packages for Solution" >> "Restore" (top right of dialog)
+  * Build project *PackageNetPlugin*. It is better to test with local AutoCAD to verify the custom command: load the .NET binary in AutoCAD, open the test DWG (with Tables), run the command 'MyPluginCommand', the code will dump all cell data of all Tables in the drawing and output to an json file: myTableData.json  
   * input your client key and client secret of Design Automation in  [Credentials.cs](./MyTestDesignAutomation/Credentials.cs).
   * input url of the DWG of web driver to  line 290 in [VariousInputs.cs](./MyTestDesignAutomation/VariousInputs.cs).
   * Build the solution and run the solution
