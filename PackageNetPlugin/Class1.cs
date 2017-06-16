@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 using Autodesk.AutoCAD.ApplicationServices.Core;
 using Autodesk.AutoCAD.EditorInput;
@@ -13,171 +14,148 @@ using System.IO;
 using Newtonsoft.Json;
 using Autodesk.AutoCAD.ApplicationServices;
 
+using RestSharp;
+using Autodesk.AutoCAD.Geometry;
+using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
+
+
 [assembly: CommandClass(typeof(PackageNetPlugin.Class1))]
 
 namespace PackageNetPlugin
-{
-    [Serializable]
-    class jsonTables
-    { 
-        [JsonProperty("tb")]
-        public jsonTable[] tb;
-    }
-
-    [Serializable]
-    class jsonTable
-    {
-        [JsonProperty("tbName")]
-        public string tbName;
-
-        [JsonProperty("tbRowCount")]
-        public int tbRowCount;
-
-        [JsonProperty("tbColumnCount")]
-        public int tbColumnCount;
-
-        [JsonProperty("tbRows")]
-        public jsonRow[] tbRows;
-    }
-
-    [Serializable]
-    class jsonRow
-    {
-        [JsonProperty("tbCells")]
-        public jsonCell[] tbCells;
-    }
-
-    [Serializable]
-    class jsonCell
-    {
-        [JsonProperty("tbCellStr")]
-        public string tbCellStr;
-    }
-
-
-
+{ 
     public class Class1
-    {
-        private int rowCount = 0;
-        //Current drawing
-        private static Document doc = 
-            Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
-        private static Database db = doc.Database; //subclass of Document, 
-        private static Editor ed = doc.Editor; //Editor object to ask user where table goes, subclass of Document
-         
-
-        [CommandMethod("MyPluginCommand")]
-        public void MyPluginCommand()
+    {   
+        private void buildGEOImage()
         {
-            TypedValue[] acTypValAr = new TypedValue[1];
-             acTypValAr.SetValue(new TypedValue((int)DxfCode.Start, "ACAD_TABLE"), 0);
- 
-            // Assign the filter criteria to a SelectionFilter object
-            SelectionFilter acSelFtr = new SelectionFilter(acTypValAr);
+            var doc = Autodesk.AutoCAD.ApplicationServices.Core.Application.DocumentManager.MdiActiveDocument;
+            if (doc == null)
+                return;
+            var db = doc.Database;
+            var ed = doc.Editor; 
 
-            // Request for objects to be selected in the drawing area
-            PromptSelectionResult acSSPrompt;
-
-            using (Transaction acTrans = db.TransactionManager.StartTransaction())
+            // from 
+            //http://through-the-interface.typepad.com/through_the_interface/2014/06/attaching-geo-location-data-to-an-autocad-drawing-using-net.html 
+            try
             {
-                //acSSPrompt = ed.GetSelection(acSelFtr);
-                acSSPrompt = ed.SelectAll(acSelFtr);
+                var gdId = db.GeoDataObject;
+                //if a map data is available
+                //not happen with current drawing template 
 
+            }
+            catch
+            {
+                //no GEO data
 
+                var msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
-                // If the prompt status is OK, objects were selected
-                if (acSSPrompt.Status == PromptStatus.OK)
-                {
-                    SelectionSet acSSet = acSSPrompt.Value;
+                var data = new GeoLocationData();
+                data.BlockTableRecordId = msId;
+                data.PostToDb();
 
-                    ed.WriteMessage("\nNumber of Tables selected: " +
-                                                acSSet.Count.ToString());
+                // We're going to define our geolocation in terms of
+                // latitude/longitude using the Mercator projection
+                // http://en.wikipedia.org/wiki/Mercator_projection
 
+                data.CoordinateSystem = "WORLD-MERCATOR";
+                data.TypeOfCoordinates = TypeOfCoordinates.CoordinateTypeLocal;
 
-                    List<jsonTable> jsonTableArray = new List<jsonTable>();
+                //the two lines will cause GEOMapImage fail! strange!
+                //data.HorizontalUnits = UnitsValue.Millimeters;
+                //data.VerticalUnits = UnitsValue.Millimeters;
+                 
+                var geoPt = new Point3d(116,40, 0);
 
-                    foreach (SelectedObject acSSObj in acSSet)
-                    {
-                        Entity acEnt = acTrans.GetObject(acSSObj.ObjectId,
-                                                  OpenMode.ForRead) as Entity;
+                // Transform from a geographic to a modelspace point
+                // and add the information to our geolocation data
+                var wcsPt = data.TransformFromLonLatAlt(geoPt);
+                data.DesignPoint = new Point3d(0, 0, 0);
+                data.ReferencePoint = wcsPt;
+                data.ScaleFactor = 7; //? useful? 
 
-                        Table oTB = acEnt as Table;
+                ed.Command("_.GEOMAP", "_ROAD");
 
-                        ed.WriteMessage("\nGetting Data from Table:{0}", oTB.Name);
+                //if we test GEOMap only
+                return;
 
-                        int Rows = oTB.Rows.Count;
-                        int Cols = oTB.Columns.Count;
-
-                        var jsonTable = new jsonTable()
-                        {
-                            tbName = oTB.Name,
-                            tbRowCount = Rows,
-                            tbColumnCount = Cols
-                        };
-
-                        List<jsonRow> jsonRowArray = new List<jsonRow>();
-
-
-                        for (int row = 0; row < Rows; row++)
-                        {
-                            jsonRow eachRow = new jsonRow();
-
-                            List<jsonCell> jsonCellArray = new List<jsonCell>();
-
-                            for (int col = 0; col < Cols; col++)
-                            {
-                                jsonCell eachCell = new jsonCell();
-                                eachCell.tbCellStr =
-                                         oTB.Cells[row, col].GetTextString(FormatOption.FormatOptionNone);
-
-                                jsonCellArray.Add(eachCell);
-
-
-                            }
-                            eachRow.tbCells = jsonCellArray.ToArray<jsonCell>();
-                            jsonRowArray.Add(eachRow); 
-                        }
-
-                        jsonTable.tbRows = jsonRowArray.ToArray<jsonRow>();
-                        jsonTableArray.Add(jsonTable);
-
-                    }
-
-                    var jsonTableInstance = new jsonTables()
-                    {
-                        tb = jsonTableArray.ToArray<jsonTable>()
-                    };
-
-                    string json_data = JsonConvert.SerializeObject(jsonTableInstance);
-
-                    var jsonOut = Path.Combine("myTableData.json");
-                    FileStream fs = new FileStream(jsonOut, FileMode.Create);
-                    StreamWriter sw = new StreamWriter(fs);
-                    try
-                    {
-                        sw.Write(json_data);
-                        sw.Flush();
-                        
-                        ed.WriteMessage("\nWrite Json File Succeeded! " );
-
-                    }
-                    catch (System.Exception ex)
-                    {
-                        ed.WriteMessage("\nWrite Json File Error: " + ex.Message.ToString());
-                    }
-                    finally
-                    {
-                        sw.Close();
-                        fs.Close();
-                    } 
-
-                }
-                else
-                {
-                    ed.WriteMessage("NO Table Object in this Drawing!");
-                }
-              } 
-
+                //to test GEOMapImage
+                createMapImage();
+            }        
         }
+
+        private void createMapImage()
+        {
+            var doc = Autodesk.AutoCAD.ApplicationServices.Core.Application.DocumentManager.MdiActiveDocument;
+            if (doc == null)
+                return;
+            var db = doc.Database;
+            var ed = doc.Editor;
+
+            ObjectId giId = ObjectId.Null;
+            ObjectEventHandler handler =
+              (s, e) =>
+              {
+                  if (e.DBObject is GeomapImage)
+                  {
+                      giId = e.DBObject.ObjectId;
+                   }
+              };
+
+            // Simply call the GEOMAPIMAGE command with the two points
+            db.ObjectAppended += handler;
+            ed.Command("GEOMAPIMAGE", "V");
+            db.ObjectAppended -= handler;
+
+            if (giId == ObjectId.Null)
+                return;
+
+            // Open the entity and change some values
+            try
+            {
+                using (var tr = doc.TransactionManager.StartTransaction())
+                {
+                    // Get each object and check if it's a GeomapImage
+                    var gi =
+                      tr.GetObject(giId, OpenMode.ForWrite) as GeomapImage;
+                    if (gi != null)
+                    {
+                        // Let's adjust the brightmess/contrast/fade of the
+                        // GeomapImage
+
+                        gi.Brightness = 50;
+                        gi.Contrast = 15;
+                        gi.Fade = 0;
+
+                        // And make sure it's at the right resolution and
+                        // shows both aerial and road information
+
+                        gi.Resolution = GeomapResolution.Optimal;
+                        gi.MapType = GeomapType.Road;
+
+                        gi.UpdateMapImage(true); 
+                    }
+
+                    tr.Commit();
+                }
+            }
+            catch (Autodesk.AutoCAD.Runtime.Exception)
+            {
+                ed.WriteMessage(
+                  "\nUnable to update geomap image entity." +
+                  "\nPlease check your internet connectivity and call " +
+                  "GEOMAPIMAGEUPDATE."
+                );
+            }
+        
+
+    } 
+
+    [CommandMethod("MyGEOTest")]
+    public void MyGEOTest()
+    { 
+        //build GEO Image
+        buildGEOImage();
+             
     }
+         
+  }
 }

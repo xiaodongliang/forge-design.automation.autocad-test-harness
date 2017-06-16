@@ -18,7 +18,7 @@ namespace MyTestDesignAutomation
 
             var content = (StreamContent)client.GetAsync(url).Result.Content;
 
-            string filename = Path.GetFileName(new Uri(url).AbsolutePath) +index;
+            string filename = Path.GetFileName(new Uri(url).AbsolutePath);
             string localFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), filename);
 
 

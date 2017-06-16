@@ -9,7 +9,7 @@ namespace MyTestDesignAutomation
     class Credentials
     {
         //get your ConsumerKey/ConsumerSecret at http://developer.autodesk.com
-        public static string ConsumerKey = "<your Forge key>";
-        public static string ConsumerSecret = "<your Forge secret>";
+        public static string ConsumerKey = "";
+        public static string ConsumerSecret = "";
     }
 }

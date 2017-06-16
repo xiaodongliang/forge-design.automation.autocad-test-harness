@@ -23,12 +23,16 @@
         LoadOnCommandInvocation="True"
         LoadOnAutoCADStartup="False">
         <Commands GroupName="Commands">
-          <Command Global="MyPluginCommand" Local="MyPluginCommand" /> 
+          <Command Global="MyGEOTest" Local="MyGEOTest" />
+
         </Commands>
         <AssemblyMappings>
           <AssemblyMapping
             Name="AppPackPlugin.Newtonsoft.Json"
             Path="./Contents/Newtonsoft.Json.dll" />
+          <AssemblyMapping
+           Name="AppPackPlugin.RestSharp"
+           Path="./Contents/RestSharp.dll" />
         </AssemblyMappings>
         
       </ComponentEntry>
@@ -39,5 +43,14 @@
        ModuleName="./Contents/Newtonsoft.Json.dll"
        AppDescription="JSON processing library"
        LoadOnAutoCADStartup="False" />
+
+      <ComponentEntry
+      AppName="AppPackPlugin.RestSharp"
+      AppType="Dependency"
+      ModuleName="./Contents/RestSharp.dll"
+      AppDescription="Restsharp processing library"
+      LoadOnAutoCADStartup="False" />
     </Components>
+
+   
 </ApplicationPackage>

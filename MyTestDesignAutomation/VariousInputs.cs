@@ -14,48 +14,54 @@ namespace MyTestDesignAutomation
 {
     class VariousInputs
     {
+
+        static string myAppPackName = "MyTest-Activity-GEO-AppPackName";
+        static string myAct_with_Pack_Name = "MyTest-Activity-GEO-Map";
+        static string myAppPackBundleName = "MyTest-Activity-GEO-Bundle.zip";
+
+        static Container container = new Container(new Uri("https://developer.api.autodesk.com/autocad.io/us-east/v2/"));
+
         static public void VariousInputsMain()
         {
             //get Token
-            Container container = new Container(new Uri("https://developer.api.autodesk.com/autocad.io/us-east/v2/"));
+           
             var token = GetToken();
 
             //set token for all calls afterwards 
             container.SendingRequest2 += (sender, e) => e.RequestMessage.SetHeader(
               "Authorization",
               token);
- 
+  
 
-            string myAppPackName = "MyTestAppPackName";
-            string myAct_with_Pack_Name = "MyActivityWithAppPack";
-            string myAppPackBundleName = "MyTest.zip";
-
-            //create an AppPackage of Design Automation
-            //just for demoing the step. Not neccessary to delete every time.
-            ////CreateZip(myAppPackBundleName); 
-
-            //delete one AppPackage
-            //just for demoing the step. Not neccessary to delete every time.
-            /////DeletePackage(container, myAppPackName);
-            //create AppPackage
-            //just for demoing the step. Not neccessary to delete every time.
-            ////AppPackage oAppPack = null;
-            ////CreatePackage(container,
-            ////    myAppPackBundleName,
-            ////    myAppPackName, oAppPack);
-
-            //delete Activity
-            //just for demoing the step. Not neccessary to delete every time.
-            ////DeleteActivity(container, myAct_with_Pack_Name);
-
-            //ceate Activity
-            ////CreateOneActivity(container, myAct_with_Pack_Name, myAppPackName);
-            //post a WorkItem） 
+            ini();
+            //post a WorkItem 
             CreateWorkItem(container, myAct_with_Pack_Name);
         }
 
+        static void ini()
+        {
+            //create an AppPackage of Design Automation
+            //just for demoing the step. Not neccessary to delete every time.
+            CreateZip(myAppPackBundleName);
 
-            static string GetToken()
+            //delete one AppPackage
+            //just for demoing the step. Not neccessary to delete every time.
+            DeletePackage(container, myAppPackName);
+            //create AppPackage
+            //just for demoing the step. Not neccessary to delete every time.
+            AppPackage oAppPack = null;
+            CreatePackage(container,
+               myAppPackBundleName,
+               myAppPackName, oAppPack);
+
+            //delete Activity
+            //just for demoing the step. Not neccessary to delete every time.
+            DeleteActivity(container, myAct_with_Pack_Name);
+
+            //ceate Activity
+            CreateOneActivity(container, myAct_with_Pack_Name, myAppPackName);
+        }
+         static string GetToken()
         {
                 using (var client = new HttpClient())
                 {
@@ -121,7 +127,7 @@ namespace MyTestDesignAutomation
         //create an AutoCAD bundle 
         static void CreateZip(string zipname)
         {
-            Console.WriteLine("packaing AutoCAD plugin as bundle...");
+            Console.WriteLine("packaging AutoCAD plugin as bundle...");
 
             if (System.IO.File.Exists(zipname))
                 System.IO.File.Delete(zipname);
@@ -134,8 +140,8 @@ namespace MyTestDesignAutomation
                 archive.CreateEntryFromFile(name, System.IO.Path.Combine(bundle, "Contents", name));
                 name = "Newtonsoft.Json.dll";
                 archive.CreateEntryFromFile(name, System.IO.Path.Combine(bundle, "Contents", name));
-                // name = "RestSharp.dll";
-                // archive.CreateEntryFromFile(name, System.IO.Path.Combine(bundle, "Contents", name));
+                name = "RestSharp.dll";
+                archive.CreateEntryFromFile(name, System.IO.Path.Combine(bundle, "Contents", name));
             }
         }
 
@@ -231,8 +237,8 @@ namespace MyTestDesignAutomation
                 Id = actId,
                 Version = 1,
                 Instruction = new Instruction()
-                { 
-                    Script = "MyPluginCommand\n"
+                {                   
+                    Script = "_tilemode 1 MyGEOTest _save result.dwg\n"
 
                 },
                 Parameters = new Parameters()
@@ -247,7 +253,7 @@ namespace MyTestDesignAutomation
                     OutputParameters = {
                     new Parameter()
                     {
-                        Name = "Result", LocalFileName = "myTableData.json"
+                      Name = "Result", LocalFileName = "Result.dwg"
                     }
                   }
                 },
@@ -269,7 +275,7 @@ namespace MyTestDesignAutomation
         //post Work Item
         static void CreateWorkItem(Container container, string actId)
         {
-            Console.WriteLine("createing Work Item...");
+            Console.WriteLine("creating Work Item...");
 
 
             //creare WorkItem
@@ -284,25 +290,21 @@ namespace MyTestDesignAutomation
             wi.Arguments.InputArguments.Add(new Argument()
             {
                
-                Name = "HostDwg",
-                   
-                //input your source drawing
-                Resource = "https://s3-us-west-2.amazonaws.com/xiaodongforgetestio/tableTest.dwg",
-              
+                Name = "HostDwg", 
+                Resource = "https://s3-us-west-2.amazonaws.com/xiaodongforgetestio/simpleDWG.dwg",
+
                 StorageProvider = StorageProvider.Generic
-            });
-           
+            }); 
+
             //output param
             wi.Arguments.OutputArguments.Add(new Argument()
             { 
                 Name = "Result",
                  
-                StorageProvider = StorageProvider.Generic,
-               
-                HttpVerb = HttpVerbType.POST,
-          
-                Resource = null
-            });
+                StorageProvider = StorageProvider.Generic, 
+                HttpVerb = HttpVerbType.POST, 
+                Resource = null, // Use storage provided by AutoCAD.IO
+             });
 
             // 
             container.AddToWorkItems(wi);
@@ -318,6 +320,7 @@ namespace MyTestDesignAutomation
             {
                 System.Threading.Thread.Sleep(10000);
                 wi = container.WorkItems.Where(p => p.Id == wi.Id).SingleOrDefault();
+                Console.WriteLine(wi.Status);
             }
             while (wi.Status == ExecutionStatus.Pending || wi.Status == ExecutionStatus.InProgress);
 
